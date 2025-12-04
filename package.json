@@ -13,6 +13,7 @@
     "@thatopen/ui": "^3.2.0",
     "stats.js": "^0.17.0",
     "vue": "^3.5.24",
+    "vue-router": "^4.6.3",
     "web-ifc": "^0.0.74"
   },
   "devDependencies": {

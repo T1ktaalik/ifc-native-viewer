@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheFirstComponent from './components/TheFirstComponent.vue';
+import Navigation from './components/Navigation.vue'
 </script>
 
 <template>
-<!--   <HelloWorld/> -->
-   <TheFirstComponent/>
+  <Navigation />
+  <router-view />
 </template>
 
 <style scoped>
