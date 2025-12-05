@@ -1,5 +1,4 @@
 import * as OBC from "@thatopen/components";
-import * as BUI from "@thatopen/ui";
 import Stats from "stats.js";
 
 export interface IfcToFragmentConverterOptions {
@@ -31,9 +30,6 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
   
   const stats = new Stats();
   stats.showPanel(2);
-  
-  let panel: BUI.PanelSection | null = null;
-  let updatePanel: (() => void) | null = null;
   
   const initialize = async () => {
     await world.camera.controls.setLookAt(78, 20, -2.2, 26, -4, 25);
@@ -73,11 +69,24 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     }
   };
   
-  const loadIfc = async (path: string = ifcPath) => {
-    const file = await fetch(path);
-    const data = await file.arrayBuffer();
-    const buffer = new Uint8Array(data);
-    await ifcLoader.load(buffer, false, 'example', {
+  const loadIfc = async (path: string | File = ifcPath) => {
+    let buffer: Uint8Array;
+    let fileName: string;
+    
+    if (typeof path === 'string') {
+      // Load from URL
+      const file = await fetch(path);
+      const data = await file.arrayBuffer();
+      buffer = new Uint8Array(data);
+      fileName = 'example';
+    } else {
+      // Load from File object (local file system)
+      const data = await path.arrayBuffer();
+      buffer = new Uint8Array(data);
+      fileName = path.name;
+    }
+    
+    await ifcLoader.load(buffer, false, fileName, {
       processData: {
         progressCallback: (progress: number) => {
           console.log(progress);
@@ -98,80 +107,11 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     URL.revokeObjectURL(link.href);
   };
   
-  const createUI = () => {
-    BUI.Manager.init();
-    
-    const result = BUI.Component.create<BUI.PanelSection, {}>((_) => {
-      let downloadBtn: BUI.TemplateResult | undefined;
-      if (fragments.list.size > 0) {
-        downloadBtn = BUI.html`
-          <bim-button label="Download Fragments" @click=${downloadFragment}></bim-button>
-        `;
-      }
-      
-      let loadBtn: BUI.TemplateResult | undefined;
-      if (fragments.list.size === 0) {
-        const onLoadIfc = async ({ target }: { target: BUI.Button }) => {
-          target.label = "Conversion in progress...";
-          target.loading = true;
-          await loadIfc();
-          target.loading = false;
-          target.label = "Load IFC";
-        };
-        
-        loadBtn = BUI.html`
-          <bim-button label="Load IFC" @click=${onLoadIfc}></bim-button>
-          <bim-label>Open the console to see the progress!</bim-label>
-        `;
-      }
-      
-      return BUI.html`
-        <bim-panel active label="IfcLoader Tutorial" class="options-menu">
-          <bim-panel-section label="Controls">
-            ${loadBtn}
-            ${downloadBtn}
-          </bim-panel-section>
-        </bim-panel>
-      `;
-    }, {});
-    
-    // Handle the result properly
-    if (Array.isArray(result)) {
-      [panel, updatePanel] = result;
-    } else {
-      panel = result as BUI.PanelSection;
-    }
-    
-    if (panel) {
-      document.body.append(panel);
-    }
-    
-    fragments.list.onItemSet.add(() => {
-      if (updatePanel) updatePanel();
-    });
-    
-    const button = BUI.Component.create<BUI.PanelSection>(() => {
-      return BUI.html`
-        <bim-button class="phone-menu-toggler" icon="solar:settings-bold"
-          @click="${() => {
-            if (panel && panel.classList.contains("options-menu-visible")) {
-              panel.classList.remove("options-menu-visible");
-            } else if (panel) {
-              panel.classList.add("options-menu-visible");
-            }
-          }}">
-        </bim-button>
-      `;
-    });
-    
-    document.body.append(button);
-    document.body.append(stats.dom);
-  };
-  
   const getStats = () => stats;
   const getComponents = () => components;
   const getWorld = () => world;
   const getFragments = () => fragments;
+  const getHasFragments = () => fragments.list.size > 0;
   
   // Cleanup function
   const dispose = () => {
@@ -180,11 +120,6 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     
     // Dispose components
     components.dispose();
-    
-    // Remove UI elements
-    if (panel) {
-      panel.remove();
-    }
     
     // Dispose stats
     stats.dom.remove();
@@ -202,11 +137,11 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     initialize,
     loadIfc,
     downloadFragment,
-    createUI,
     getStats,
     getComponents,
     getWorld,
     getFragments,
+    getHasFragments,
     dispose,
     handleWorkerError
   };
