@@ -6,28 +6,15 @@
         class="px-3 py-2 rounded hover:bg-gray-700 transition-colors"
         active-class="bg-gray-900"
       >
-        Home
+       Демонстрация
       </router-link>
-      <router-link 
-        to="/fragment-viewer" 
-        class="px-3 py-2 rounded hover:bg-gray-700 transition-colors"
-        active-class="bg-gray-900"
-      >
-        Fragment Viewer
-      </router-link>
-      <router-link 
-        to="/ifc-viewer" 
-        class="px-3 py-2 rounded hover:bg-gray-700 transition-colors"
-        active-class="bg-gray-900"
-      >
-        IFC Viewer
-      </router-link>
+
       <router-link 
         to="/ifc-to-frag-converter" 
         class="px-3 py-2 rounded hover:bg-gray-700 transition-colors"
         active-class="bg-gray-900"
       >
-        IFC to Frag Converter
+        Загрузить и посмотреть
       </router-link>
     </div>
   </nav>

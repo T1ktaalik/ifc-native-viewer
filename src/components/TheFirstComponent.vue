@@ -8,6 +8,9 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * The componets isaimde to be a demo to try and touch
+ */
 import { onMounted, onUnmounted, ref } from "vue"
 import * as THREE from "three"
 import Stats from "stats.js"

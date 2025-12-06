@@ -18,13 +18,6 @@
         >
           {{ isLoading ? 'Conversion in progress...' : 'Load IFC from File' }}
         </button>
-        <button
-          @click="loadIfcFromUrl"
-          :disabled="isLoading"
-          class="load-url-btn"
-        >
-          {{ isLoading ? 'Conversion in progress...' : 'Load Sample IFC' }}
-        </button>
       </div>
       <button
         v-else
