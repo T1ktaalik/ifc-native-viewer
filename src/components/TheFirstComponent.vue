@@ -1,8 +1,5 @@
 <template>
   <div class="flex flex-col h-screen w-screen overflow-hidden">
-    <header class="bg-gray-800 text-white p-4 text-center flex-shrink-0">
-      <h1 class="text-xl font-bold">IFC Native Viewer</h1>
-    </header>
     <div ref="containerRef" class="flex-1 w-full h-full bg-gray-200"></div>
   </div>
 </template>
@@ -18,6 +15,10 @@ import * as BUI from '@thatopen/ui'
 import * as OBC from '@thatopen/components'
 
 const containerRef = ref<HTMLElement | null>(null)
+const stats = new Stats()
+stats.showPanel(0)
+stats.showPanel(1)
+stats.showPanel(2)
 
 console.log("TheFirstComponent");
 

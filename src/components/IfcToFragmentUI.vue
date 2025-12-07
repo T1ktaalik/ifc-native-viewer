@@ -26,6 +26,13 @@
       >
         Download Fragments
       </button>
+      <button
+        v-if="hasFragments"
+        @click="resetModel"
+        class="reset-btn"
+      >
+        Reset Model
+      </button>
       <div v-if="!hasFragments" class="info">
         Open the console to see the progress!
       </div>
@@ -104,6 +111,25 @@ const downloadFragment = async () => {
   await converter.downloadFragment();
 };
 
+const resetModel = async () => {
+  if (!converter) return;
+  
+  // Dispose of the current converter
+  converter.dispose();
+  
+  // Reset state
+  hasFragments.value = false;
+  isLoading.value = false;
+  
+  // Reinitialize the converter
+  if (theConverterContainer.value) {
+    converter = useIfcToFragmentConverter({
+      container: theConverterContainer.value
+    });
+    await converter.initialize();
+  }
+};
+
 onMounted(async () => {
   if (!theConverterContainer.value) {
     console.error('Нет элемента-контейнера!');
@@ -143,6 +169,18 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  position: relative;
+}
+
+.viewer-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .controls {
@@ -197,5 +235,9 @@ onUnmounted(() => {
 
 .load-url-btn {
   background-color: #6c757d;
+}
+
+.reset-btn {
+  background-color: #dc3545;
 }
 </style>

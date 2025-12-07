@@ -28,8 +28,14 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
   const fragments = components.get(OBC.FragmentsManager);
   const ifcLoader = components.get(OBC.IfcLoader);
   
-  const stats = new Stats();
-  stats.showPanel(2);
+  // Create three separate stats instances for three monitors
+  const stats1 = new Stats();
+  const stats2 = new Stats();
+  const stats3 = new Stats();
+  
+  stats1.showPanel(0); // FPS
+  stats2.showPanel(1); // MS
+  stats3.showPanel(2); // MB
   
   const initialize = async () => {
     await world.camera.controls.setLookAt(78, 20, -2.2, 26, -4, 25);
@@ -60,36 +66,85 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
       fragments.core.update(true);
     });
     
-    // Initialize stats
-    stats.dom.style.left = "0px";
-    stats.dom.style.zIndex = "unset";
+    // Initialize stats panels
+    const setupStats = (stats: Stats, rightOffset: string) => {
+      stats.dom.style.position = "absolute";
+      stats.dom.style.right = rightOffset;
+      stats.dom.style.bottom = "10px";
+      stats.dom.style.left = "unset";
+      stats.dom.style.top = "unset";
+      stats.dom.style.zIndex = "1000";
+      stats.dom.style.background = "rgba(255, 255, 255, 0.9)";
+      stats.dom.style.padding = "5px";
+      container.appendChild(stats.dom);
+    };
+    
+    setupStats(stats1, "10px");
+    setupStats(stats2, "90px");
+    setupStats(stats3, "170px");
+    
+    // Remove borders from all canvas elements
+    const removeCanvasBorders = () => {
+      setTimeout(() => {
+        const canvases = container.querySelectorAll('canvas');
+        canvases.forEach(canvas => {
+          (canvas as HTMLElement).style.border = "none";
+        });
+      }, 100);
+    };
+    
+    removeCanvasBorders();
+    
     if (world.renderer) {
-      world.renderer.onBeforeUpdate.add(() => stats.begin());
-      world.renderer.onAfterUpdate.add(() => stats.end());
+      world.renderer.onBeforeUpdate.add(() => {
+        stats1.begin();
+        stats2.begin();
+        stats3.begin();
+      });
+      world.renderer.onAfterUpdate.add(() => {
+        stats1.end();
+        stats2.end();
+        stats3.end();
+      });
     }
+    
+    // Add monitor for fragment loading progress
+    fragments.list.onItemSet.add(({key, value: model}) => {
+      console.log(`Fragment loaded: ${key}`);
+    });
+    
+    // Add monitor for fragment loading errors
+    // fragments.list.onError.add((error) => {
+    //   console.error("Fragment loading error:", error);
+    // });
   };
+  
+  // Store the last loaded file name for use in download
+  let lastLoadedFileName = 'example';
   
   const loadIfc = async (path: string | File = ifcPath) => {
     let buffer: Uint8Array;
-    let fileName: string;
     
     if (typeof path === 'string') {
       // Load from URL
       const file = await fetch(path);
       const data = await file.arrayBuffer();
       buffer = new Uint8Array(data);
-      fileName = 'example';
+      // Extract filename from URL
+      const url = new URL(path);
+      const pathname = url.pathname;
+      lastLoadedFileName = pathname.split('/').pop()?.replace('.ifc', '') || 'example';
     } else {
       // Load from File object (local file system)
       const data = await path.arrayBuffer();
       buffer = new Uint8Array(data);
-      fileName = path.name;
+      lastLoadedFileName = path.name.replace('.ifc', '');
     }
     
-    await ifcLoader.load(buffer, false, fileName, {
+    await ifcLoader.load(buffer, false, lastLoadedFileName, {
       processData: {
         progressCallback: (progress: number) => {
-          console.log(progress);
+          console.log(`IFC processing progress: ${progress}%`);
         }
       }
     });
@@ -99,7 +154,8 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     const [model] = fragments.list.values();
     if (!model) return;
     const fragsBuffer = await model.getBuffer(false);
-    const file = new File([fragsBuffer], 'fragments.frag');
+    const fileName = `${lastLoadedFileName}.frag`;
+    const file = new File([fragsBuffer], fileName);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(file);
     link.download = file.name;
@@ -107,7 +163,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     URL.revokeObjectURL(link.href);
   };
   
-  const getStats = () => stats;
+  const getStats = () => ({ stats1, stats2, stats3 });
   const getComponents = () => components;
   const getWorld = () => world;
   const getFragments = () => fragments;
@@ -122,7 +178,9 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     components.dispose();
     
     // Dispose stats
-    stats.dom.remove();
+    stats1.dom.remove();
+    stats2.dom.remove();
+    stats3.dom.remove();
   };
   
   // Global error handler for worker errors
