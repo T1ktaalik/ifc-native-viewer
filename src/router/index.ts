@@ -1,17 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import TheFirstComponent from '../components/TheFirstComponent.vue'
-import TheIfcToFragConverter from '../components/TheIfcToFragConverter.vue'
+import TheViewer from '../components/TheViewer.vue'
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: TheFirstComponent
+    component: TheViewer
   },
+  // Redirect any unknown routes to home
   {
-    path: '/ifc-to-frag-converter',
-    name: 'IfcToFragConverter',
-    component: TheIfcToFragConverter
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

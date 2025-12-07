@@ -141,11 +141,12 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
       lastLoadedFileName = path.name.replace('.ifc', '');
     }
     
-    await ifcLoader.load(buffer, false, lastLoadedFileName, {
+    await ifcLoader.load(buffer, true, lastLoadedFileName, {
       processData: {
         progressCallback: (progress: number) => {
           console.log(`IFC processing progress: ${progress}%`);
-        }
+        },
+        
       }
     });
   };

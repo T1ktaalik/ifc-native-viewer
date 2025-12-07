@@ -2,7 +2,7 @@
   <div class="ifc-to-frag-converter-container">
     <div ref="theConverterContainer" class="viewer-container"></div>
     <div class="controls">
-      <div v-if="!hasFragments" class="load-controls">
+      <div class="load-controls">
         <input
           type="file"
           ref="fileInput"
@@ -16,11 +16,11 @@
           :disabled="isLoading"
           class="load-btn"
         >
-          {{ isLoading ? 'Conversion in progress...' : 'Load IFC from File' }}
+          {{ isLoading ? 'Conversion in progress...' : 'Add Model' }}
         </button>
       </div>
       <button
-        v-else
+        v-if="hasFragments"
         @click="downloadFragment"
         class="download-btn"
       >
@@ -33,9 +33,6 @@
       >
         Reset Model
       </button>
-      <div v-if="!hasFragments" class="info">
-        Open the console to see the progress!
-      </div>
     </div>
   </div>
 </template>

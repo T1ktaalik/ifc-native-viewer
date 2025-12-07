@@ -1,22 +1,6 @@
 <template>
   <nav class="bg-gray-800 text-white p-4">
-    <div class="container mx-auto flex space-x-4">
-      <router-link 
-        to="/" 
-        class="px-3 py-2 rounded hover:bg-gray-700 transition-colors"
-        active-class="bg-gray-900"
-      >
-       Демонстрация
-      </router-link>
 
-      <router-link 
-        to="/ifc-to-frag-converter" 
-        class="px-3 py-2 rounded hover:bg-gray-700 transition-colors"
-        active-class="bg-gray-900"
-      >
-        Загрузить и посмотреть
-      </router-link>
-    </div>
   </nav>
 </template>
 
@@ -25,6 +9,10 @@
 </script>
 
 <style scoped>
+nav {
+  min-height: 50px;
+}
+
 .router-link-active {
   background-color: #4B5563;
 }
