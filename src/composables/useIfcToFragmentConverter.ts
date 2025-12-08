@@ -60,10 +60,27 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
       fragments.core.update(true);
     });
     
-    fragments.list.onItemSet.add(({value: model}) => {
+    // Add monitor for fragment loading progress
+    fragments.list.onItemSet.add(({key, value: model}) => {
+      console.log(`Fragment loaded: ${key}`);
+    });
+    
+    // Add model loaded event emitter
+    fragments.list.onItemSet.add(({key, value: model}) => {
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);
       fragments.core.update(true);
+      
+      // Emit model loaded event
+      const event = new CustomEvent('modelLoaded', {
+        detail: {
+          model: {
+            uuid: key,
+            name: key || 'Unnamed Model'
+          }
+        }
+      });
+      modelLoadedEvent.dispatchEvent(event);
     });
     
     // Initialize stats panels
@@ -107,11 +124,6 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
         stats3.end();
       });
     }
-    
-    // Add monitor for fragment loading progress
-    fragments.list.onItemSet.add(({key, value: model}) => {
-      console.log(`Fragment loaded: ${key}`);
-    });
     
     // Add monitor for fragment loading errors
     // fragments.list.onError.add((error) => {
@@ -185,6 +197,10 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
   };
   
   // Global error handler for worker errors
+  // Create an event emitter for model loaded events
+  const modelLoadedEvent = new EventTarget();
+  
+  
   const handleWorkerError = (event: ErrorEvent) => {
     console.error("Worker error caught:", event);
     if (event.message && event.message.includes("incorrect header check")) {
@@ -202,6 +218,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     getFragments,
     getHasFragments,
     dispose,
-    handleWorkerError
+    handleWorkerError,
+    modelLoadedEvent
   };
 }

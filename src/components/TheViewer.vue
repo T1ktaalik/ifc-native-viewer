@@ -1,39 +1,25 @@
 <template>
   <div class="ifc-to-frag-converter-container">
-    <div ref="theConverterContainer" class="viewer-container"></div>
-    <div class="controls">
-      <div class="load-controls">
-        <input
-          type="file"
-          ref="fileInput"
-          accept=".ifc"
-          @change="onFileSelected"
-          class="file-input"
-          style="display: none"
-        />
-        <button
-          @click="selectAndLoadFileAndConvert"
-          :disabled="isLoading"
-          class="load-btn"
-        >
-          {{ isLoading ? 'Conversion in progress...' : 'Add Model' }}
-        </button>
-      </div>
-      <button
-        v-if="hasFragments"
-        @click="downloadFragment"
-        class="download-btn"
-      >
-        Download Fragments
-      </button>
-      <button
-        v-if="hasFragments"
-        @click="resetModel"
-        class="reset-btn"
-      >
-        Reset Model
-      </button>
-    </div>
+    <div
+      ref="theConverterContainer"
+      class="viewer-container"
+      :style="{ backgroundColor: settingsStore.viewerSettings.backgroundColor }"
+    ></div>
+    <Controls
+      :is-loading="isLoading"
+      :has-fragments="hasFragments"
+      :on-file-selected="onFileSelected"
+      :select-and-load-file-and-convert="selectAndLoadFileAndConvert"
+      :download-fragment="downloadFragment"
+      :reset-model="resetModel"
+      ref="controlsRef"
+    />
+    <ModelList
+      :models="modelsStore.loadedModels"
+      :activeModelId="modelsStore.activeModelId"
+      @setActiveModel="modelsStore.setActiveModel"
+      class="model-list-sidebar"
+    />
   </div>
 </template>
 
@@ -41,13 +27,33 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useIfcToFragmentConverter } from "../composables/useIfcToFragmentConverter";
 import * as BUI from "@thatopen/ui";
+import ModelList from "./ModelList.vue";
+import Controls from "./Controls.vue";
+import { useModelsStore } from "../stores/models";
+import { useSettingsStore } from "../stores/settings";
+
+const modelsStore = useModelsStore();
+const settingsStore = useSettingsStore();
 
 const theConverterContainer = ref<HTMLElement | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
+const controlsRef = ref<InstanceType<typeof Controls> | null>(null);
 let converter: ReturnType<typeof useIfcToFragmentConverter> | null = null;
 const isLoading = ref(false);
 const hasFragments = ref(false);
 const selectedFile = ref<File | null>(null);
+
+let modelLoadedListener: any = null;
+
+// Function to add a model to the list
+const addModelToList = (id: string, name: string) => {
+  modelsStore.addModel(id, name);
+};
+
+// Function to set active model
+const setActiveModel = (modelId: string) => {
+  modelsStore.setActiveModel(modelId);
+  // TODO: Implement model switching logic
+};
 
 const onFileSelected = (event: Event) => {
   const target = event.target as HTMLInputElement;
@@ -59,19 +65,20 @@ const onFileSelected = (event: Event) => {
 };
 
 const selectAndLoadFileAndConvert = async () => {
-  if (fileInput.value) {
+  if (controlsRef.value?.fileInput) {
     // Set up a one-time event listener to handle the file selection and conversion
+    const fileInput = controlsRef.value.fileInput;
     const handleFileSelection = async (event: Event) => {
       onFileSelected(event);
       // Remove the event listener to prevent multiple triggers
-      fileInput.value?.removeEventListener('change', handleFileSelection);
+      fileInput?.removeEventListener('change', handleFileSelection);
       // Load the file immediately after selection
       await loadIfcFromFile();
     };
     
     // Add the event listener
-    fileInput.value.addEventListener('change', handleFileSelection, { once: true });
-    fileInput.value.click();
+    fileInput.addEventListener('change', handleFileSelection, { once: true });
+    fileInput.click();
   }
 };
 
@@ -118,6 +125,9 @@ const resetModel = async () => {
   hasFragments.value = false;
   isLoading.value = false;
   
+  // Reset models store
+  modelsStore.resetModels();
+  
   // Reinitialize the converter
   if (theConverterContainer.value) {
     converter = useIfcToFragmentConverter({
@@ -141,14 +151,25 @@ onMounted(async () => {
   window.addEventListener('error', converter.handleWorkerError);
 
   await converter.initialize();
+
+  // Listen for model loaded events
+  modelLoadedListener = (event: any) => {
+    const { model } = event.detail;
+    addModelToList(model.uuid, model.name);
+  };
+  converter.modelLoadedEvent.addEventListener('modelLoaded', modelLoadedListener);
   hasFragments.value = converter.getHasFragments();
   
   // Initialize BUI Manager
   BUI.Manager.init();
 });
 
+
 // Clean up the event listener and dispose of resources
 onUnmounted(() => {
+  if (converter && modelLoadedListener) {
+    converter.modelLoadedEvent.removeEventListener('modelLoaded', modelLoadedListener);
+  }
   if (converter) {
     converter.dispose();
   }
@@ -236,5 +257,19 @@ onUnmounted(() => {
 
 .reset-btn {
   background-color: #dc3545;
+}
+
+/* Model list sidebar styles */
+.model-list-sidebar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 250px;
+  max-height: calc(100% - 20px);
+  z-index: 100;
+}
+
+.ifc-to-frag-converter-container {
+  position: relative;
 }
 </style>
