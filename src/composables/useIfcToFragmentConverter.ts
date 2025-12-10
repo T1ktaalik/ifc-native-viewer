@@ -1,12 +1,42 @@
 import * as OBC from "@thatopen/components";
-import Stats from "stats.js";
+import { usePerformanceMonitor } from "./usePerformanceMonitor";
 
+/**
+ * Configuration options for the IFC to Fragment converter
+ */
 export interface IfcToFragmentConverterOptions {
+  /** The HTML element where the 3D viewer will be rendered */
   container: HTMLElement;
+  /** Optional URL to an IFC file to load by default */
   ifcPath?: string;
+  /** Optional URL to the worker script for fragment processing */
   workerUrl?: string;
 }
 
+/**
+ * A composable function that provides IFC to Fragment conversion functionality.
+ *
+ * This function initializes a 3D viewer using @thatopen/components library and provides
+ * methods to load IFC files, convert them to fragment format, and manage the 3D scene.
+ *
+ * @param options - Configuration options for the converter
+ * @param options.container - The HTML element where the 3D viewer will be rendered
+ * @param options.ifcPath - Optional URL to an IFC file to load by default
+ * @param options.workerUrl - Optional URL to the worker script for fragment processing
+ *
+ * @returns An object containing methods to control the IFC to fragment conversion process:
+ * - initialize: Initializes the 3D viewer and components
+ * - loadIfc: Loads an IFC file from a URL or File object
+ * - downloadFragment: Downloads the converted fragment as a .frag file
+ * - getStats: Returns the performance statistics objects
+ * - getComponents: Returns the components manager instance
+ * - getWorld: Returns the world instance
+ * - getFragments: Returns the fragments manager instance
+ * - getHasFragments: Returns whether any fragments are currently loaded
+ * - dispose: Cleans up resources and event listeners
+ * - handleWorkerError: Handles worker-related errors
+ * - modelLoadedEvent: Event target for model loaded events
+ */
 export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions) {
   const { container, ifcPath = "https://thatopen.github.io/engine_components/resources/ifc/school_str.ifc", workerUrl = "/resources/worker.mjs" } = options;
   
@@ -28,14 +58,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
   const fragments = components.get(OBC.FragmentsManager);
   const ifcLoader = components.get(OBC.IfcLoader);
   
-  // Create three separate stats instances for three monitors
-  const stats1 = new Stats();
-  const stats2 = new Stats();
-  const stats3 = new Stats();
-  
-  stats1.showPanel(0); // FPS
-  stats2.showPanel(1); // MS
-  stats3.showPanel(2); // MB
+  const performanceMonitor = usePerformanceMonitor(container);
   
   const initialize = async () => {
     await world.camera.controls.setLookAt(78, 20, -2.2, 26, -4, 25);
@@ -84,22 +107,6 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     });
     
     // Initialize stats panels
-    const setupStats = (stats: Stats, rightOffset: string) => {
-      stats.dom.style.position = "absolute";
-      stats.dom.style.right = rightOffset;
-      stats.dom.style.bottom = "10px";
-      stats.dom.style.left = "unset";
-      stats.dom.style.top = "unset";
-      stats.dom.style.zIndex = "1000";
-      stats.dom.style.background = "rgba(255, 255, 255, 0.9)";
-      stats.dom.style.padding = "5px";
-      container.appendChild(stats.dom);
-    };
-    
-    setupStats(stats1, "10px");
-    setupStats(stats2, "90px");
-    setupStats(stats3, "170px");
-    
     // Remove borders from all canvas elements
     const removeCanvasBorders = () => {
       setTimeout(() => {
@@ -111,17 +118,14 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     };
     
     removeCanvasBorders();
+    performanceMonitor.initialize();
     
     if (world.renderer) {
       world.renderer.onBeforeUpdate.add(() => {
-        stats1.begin();
-        stats2.begin();
-        stats3.begin();
+        performanceMonitor.begin();
       });
       world.renderer.onAfterUpdate.add(() => {
-        stats1.end();
-        stats2.end();
-        stats3.end();
+        performanceMonitor.end();
       });
     }
     
@@ -176,7 +180,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     URL.revokeObjectURL(link.href);
   };
   
-  const getStats = () => ({ stats1, stats2, stats3 });
+  const getStats = () => performanceMonitor.getStats();
   const getComponents = () => components;
   const getWorld = () => world;
   const getFragments = () => fragments;
@@ -191,9 +195,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     components.dispose();
     
     // Dispose stats
-    stats1.dom.remove();
-    stats2.dom.remove();
-    stats3.dom.remove();
+    performanceMonitor.dispose();
   };
   
   // Global error handler for worker errors
