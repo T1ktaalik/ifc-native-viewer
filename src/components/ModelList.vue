@@ -7,7 +7,7 @@
         :key="model.id"
         class="model-item"
         :class="{ 'active': model.id === modelsStore.activeModelId }"
-        @click="setActiveModel(model.id)"
+        @click="modelsStore.setActiveModel(model.id)"
       >
         {{ model.name }}
       </li>
@@ -18,16 +18,7 @@
 <script setup lang="ts">
 import { useModelsStore } from '../stores/models';
 
-interface Model {
-  id: string;
-  name: string;
-}
-
 const modelsStore = useModelsStore();
-
-const setActiveModel = (modelId: string) => {
-  modelsStore.setActiveModel(modelId);
-};
 </script>
 
 <style scoped>
@@ -51,22 +42,22 @@ const setActiveModel = (modelId: string) => {
 }
 
 .model-item {
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
+  padding: 0.25rem 0;
+  margin-bottom: 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: none;
 }
 
 .model-item:hover {
-  background-color: #e9ecef;
+  background-color: transparent;
 }
 
 .model-item.active {
-  background-color: #007bff;
-  color: #fff;
-  border-color: #007bff;
+  background-color: transparent;
+  color: inherit;
+  border-color: transparent;
 }
 </style>

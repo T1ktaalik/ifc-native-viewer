@@ -20,6 +20,10 @@
       @setActiveModel="modelsStore.setActiveModel"
       class="model-list-sidebar"
     />
+    <TreeContainer
+      :components="converterComponents"
+      class="tree-container"
+    />
   </div>
 </template>
 
@@ -29,6 +33,7 @@ import { useIfcToFragmentConverter } from "../composables/useIfcToFragmentConver
 import * as BUI from "@thatopen/ui";
 import ModelList from "./ModelList.vue";
 import Controls from "./Controls.vue";
+import TreeContainer from "./TreeContainer.vue";
 import { useModelsStore } from "../stores/models";
 import { useSettingsStore } from "../stores/settings";
 
@@ -40,6 +45,7 @@ const controlsRef = ref<InstanceType<typeof Controls> | null>(null);
 let converter: ReturnType<typeof useIfcToFragmentConverter> | null = null;
 const isLoading = ref(false);
 const hasFragments = ref(false);
+const converterComponents = ref<any>(null);
 const selectedFile = ref<File | null>(null);
 
 let modelLoadedListener: any = null;
@@ -151,6 +157,9 @@ onMounted(async () => {
   window.addEventListener('error', converter.handleWorkerError);
 
   await converter.initialize();
+
+  // Get the components instance for the tree
+  converterComponents.value = converter.getComponents();
 
   // Listen for model loaded events
   modelLoadedListener = (event: any) => {
@@ -267,6 +276,19 @@ onUnmounted(() => {
   width: 250px;
   max-height: calc(100% - 20px);
   z-index: 100;
+}
+
+/* Tree container styles */
+.tree-container {
+  position: absolute;
+  top: 10px;
+  right: 270px; /* Position next to model list */
+  width: 300px;
+  max-height: calc(100% - 20px);
+  z-index: 100;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
 }
 
 .ifc-to-frag-converter-container {

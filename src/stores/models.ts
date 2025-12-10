@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref, computed } from 'vue'
 
 interface Model {
   id: string
@@ -9,6 +9,12 @@ interface Model {
 export const useModelsStore = defineStore('models', () => {
   const loadedModels = ref<Model[]>([])
   const activeModelId = ref<string | null>(null)
+  
+  // Computed property to get the active model
+  const activeModel = computed(() => {
+    if (!activeModelId.value) return null
+    return loadedModels.value.find(model => model.id === activeModelId.value)
+  })
 
   const addModel = (id: string, name: string) => {
     loadedModels.value.push({ id, name })
@@ -39,6 +45,7 @@ export const useModelsStore = defineStore('models', () => {
   return {
     loadedModels,
     activeModelId,
+    activeModel, // Expose the computed property
     addModel,
     setActiveModel,
     removeModel,

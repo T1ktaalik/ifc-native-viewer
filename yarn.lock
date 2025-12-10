@@ -168,7 +168,15 @@
     "@tailwindcss/oxide" "4.1.17"
     tailwindcss "4.1.17"
 
-"@thatopen/components@^3.2.6":
+"@thatopen/components-front@~3.2.0":
+  version "3.2.16"
+  resolved "https://registry.npmjs.org/@thatopen/components-front/-/components-front-3.2.16.tgz"
+  integrity sha512-eFvvT3h+8jdMxYs1OdSwsognE4l0FvqKpeQBACipz4R1Cfdi+KzBGiWtA+zLObLcrwkm/j3zXJCCGKwR/pjedQ==
+  dependencies:
+    "@thatopen/components" "~3.2.0"
+    earcut "^3.0.1"
+
+"@thatopen/components@^3.2.6", "@thatopen/components@~3.2.0":
   version "3.2.6"
   resolved "https://registry.npmjs.org/@thatopen/components/-/components-3.2.6.tgz"
   integrity sha512-R4XHjLzaXS2crNf8/ofJnff1KywkfZPhaBXOZGPRb0Za8kuS4Q2HZ3Z3R/UxIdUU50NWhL7IZPgHdgu3EKPCXA==
@@ -188,7 +196,15 @@
     lru-cache "11.1.0"
     pako "2.1.0"
 
-"@thatopen/ui@^3.2.0":
+"@thatopen/ui-obc@^3.2.2":
+  version "3.2.2"
+  resolved "https://registry.npmjs.org/@thatopen/ui-obc/-/ui-obc-3.2.2.tgz"
+  integrity sha512-BTQwJaq7RqOFM4icclihMRqI+rsZ9XamYV6YTUmOhldhNq7ns92kuvGPtOWRukPzk/r02Te+bH1DQ7fYUIeVdQ==
+  dependencies:
+    "@thatopen/ui" "~3.2.0"
+    lit "3.1.2"
+
+"@thatopen/ui@^3.2.0", "@thatopen/ui@~3.2.0":
   version "3.2.0"
   resolved "https://registry.npmjs.org/@thatopen/ui/-/ui-3.2.0.tgz"
   integrity sha512-2LTh8tVf2DwteA9RSWNH4FSJyAc5OslADIEDyPre96RpVP3z2/J+5svX00RdrbVVJONh2ASUtexWykY7XR8xCg==
