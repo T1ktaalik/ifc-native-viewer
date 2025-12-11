@@ -7,7 +7,7 @@
         :key="model.id"
         class="model-item"
         :class="{ 'active': model.id === modelsStore.activeModelId }"
-        @click="modelsStore.setActiveModel(model.id)"
+       @click="onModelSelect(model.id)"
       >
         {{ model.name }}
       </li>
@@ -19,6 +19,11 @@
 import { useModelsStore } from '../stores/models';
 
 const modelsStore = useModelsStore();
+
+const onModelSelect = (modelId: string) => {
+  console.log('Model selected from list:', modelId);
+  modelsStore.setActiveModel(modelId);
+};
 </script>
 
 <style scoped>
@@ -57,7 +62,8 @@ const modelsStore = useModelsStore();
 
 .model-item.active {
   background-color: transparent;
-  color: inherit;
+  color: #ff8c00;
   border-color: transparent;
+  font-weight: bold;
 }
 </style>

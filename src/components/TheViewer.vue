@@ -20,8 +20,7 @@
       @setActiveModel="modelsStore.setActiveModel"
       class="model-list-sidebar"
     />
-    <TreeContainer
-      :components="converterComponents"
+    <ModelTree
       class="tree-container"
     />
   </div>
@@ -31,22 +30,76 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useIfcToFragmentConverter } from "../composables/useIfcToFragmentConverter";
 import * as BUI from "@thatopen/ui";
+import * as BUIC from "@thatopen/ui-obc";
+import * as OBC from "@thatopen/components";
 import ModelList from "./ModelList.vue";
 import Controls from "./Controls.vue";
-import TreeContainer from "./TreeContainer.vue";
+import ModelTree from "./ModelTree.vue";
+import { useComponentsStore } from "../stores/components";
 import { useModelsStore } from "../stores/models";
 import { useSettingsStore } from "../stores/settings";
 
 const modelsStore = useModelsStore();
 const settingsStore = useSettingsStore();
+const componentsStore = useComponentsStore();
 
 const theConverterContainer = ref<HTMLElement | null>(null);
 const controlsRef = ref<InstanceType<typeof Controls> | null>(null);
 let converter: ReturnType<typeof useIfcToFragmentConverter> | null = null;
 const isLoading = ref(false);
 const hasFragments = ref(false);
-const converterComponents = ref<any>(null);
 const selectedFile = ref<File | null>(null);
+
+// Function to automatically create and store tree data when a model is loaded
+const autoCreateTreeData = async (modelId: string, modelName: string) => {
+  // Create tree data for the loaded model
+  console.log(`Auto-creating tree data for model: ${modelName} (${modelId})`);
+  // The actual tree creation will happen in the ModelTree component
+  // when it detects the active model change
+};
+
+// Function to create tree data when a model is loaded
+const createTreeForModel = async (modelId: string) => {
+  if (!componentsStore.components) {
+    console.warn('Components not available for tree creation');
+    return;
+  }
+  
+  // Check if we already have a tree for this model
+    const existingTree = modelsStore.getRawTreeForModel(modelId);
+  if (existingTree) {
+    console.log('Tree already exists for model:', modelId);
+    return; // Tree already exists
+  }
+  
+  // Get the fragments manager to access loaded models
+  const fragments = componentsStore.components.get(OBC.FragmentsManager);
+  
+  // Get the actual model object from fragments
+  const fragmentModel = fragments.list.get(modelId);
+  if (!fragmentModel) {
+    console.error('Model not found in fragments list:', modelId);
+    return;
+  }
+  
+  console.log('Model found for tree creation:', modelId, fragmentModel);
+  
+  try {
+    console.log('Creating tree for model:', modelId);
+    // Create spatial tree for this specific model
+    const [tree] = BUIC.tables.spatialTree({
+      components: componentsStore.components as any,
+      models: [fragmentModel] // Pass the actual model object
+    });
+    
+    console.log('Tree created for model:', modelId, tree);
+    // Store in Pinia
+        modelsStore.addModelTree(modelId, tree);
+    console.log('Tree created and stored for model:', modelId);
+  } catch (error) {
+    console.error('Error creating tree for model:', modelId, error);
+  }
+};
 
 let modelLoadedListener: any = null;
 
@@ -134,12 +187,17 @@ const resetModel = async () => {
   // Reset models store
   modelsStore.resetModels();
   
+  // Clear components store
+  componentsStore.clearComponents();
+  
   // Reinitialize the converter
   if (theConverterContainer.value) {
     converter = useIfcToFragmentConverter({
       container: theConverterContainer.value
     });
     await converter.initialize();
+    // Set the new components in the store
+    componentsStore.setComponents(converter.getComponents());
   }
 };
 
@@ -159,12 +217,22 @@ onMounted(async () => {
   await converter.initialize();
 
   // Get the components instance for the tree
-  converterComponents.value = converter.getComponents();
+  componentsStore.setComponents(converter.getComponents());
 
   // Listen for model loaded events
   modelLoadedListener = (event: any) => {
     const { model } = event.detail;
     addModelToList(model.uuid, model.name);
+    // Auto-create tree data for the loaded model
+    autoCreateTreeData(model.uuid, model.name);
+    // Create tree for the loaded model
+    console.log('Creating tree for loaded model:', model.uuid, model.name);
+    // Make sure components are available
+    if (componentsStore.components) {
+      createTreeForModel(model.uuid);
+    } else {
+      console.warn('Components not available for tree creation');
+    }
   };
   converter.modelLoadedEvent.addEventListener('modelLoaded', modelLoadedListener);
   hasFragments.value = converter.getHasFragments();
@@ -182,6 +250,7 @@ onUnmounted(() => {
   if (converter) {
     converter.dispose();
   }
+  componentsStore.clearComponents();
 });
 </script>
 

@@ -9,3 +9,4 @@ export function setupStore(app: App) {
 
 export * from './models'
 export * from './settings'
+export * from './components'

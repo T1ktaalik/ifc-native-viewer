@@ -90,6 +90,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
     
     // Add model loaded event emitter
     fragments.list.onItemSet.add(({key, value: model}) => {
+      console.log('Model added to fragments list with key:', key);
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);
       fragments.core.update(true);
