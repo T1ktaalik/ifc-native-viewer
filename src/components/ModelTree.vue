@@ -19,6 +19,7 @@ import * as OBC from "@thatopen/components";
 const modelsStore = useModelsStore();
 const treeContainer = ref<HTMLElement | null>(null);
 let isDisplayingTree = false; // Flag to prevent multiple simultaneous tree displays
+let currentDisplayedModelId: string | null = null; // Track currently displayed model
 
 // Function to display an existing tree for a model
 const displayTree = (modelId: string) => {
@@ -28,14 +29,23 @@ const displayTree = (modelId: string) => {
     return;
   }
   
+  // If this tree is already displayed, no need to re-display
+  if (currentDisplayedModelId === modelId) {
+    console.log('Tree already displayed for model:', modelId);
+    return;
+  }
+  
   isDisplayingTree = true;
   
   try {
-    if (!treeContainer.value) return;
+    if (!treeContainer.value) {
+      isDisplayingTree = false;
+      return;
+    }
     
     // Clear previous tree if exists
     if (treeContainer.value.firstChild) {
-      console.log('Clearing previous tree for model:', modelId);
+      console.log('Clearing previous tree for model:', currentDisplayedModelId);
       // Remove all child nodes
       while (treeContainer.value.firstChild) {
         treeContainer.value.removeChild(treeContainer.value.firstChild);
@@ -83,6 +93,11 @@ const displayTree = (modelId: string) => {
       // Show a message to the user
       treeContainer.value.innerHTML = '<p>Tree data not available for this model</p>';
     }
+    
+    // Update the currently displayed model ID
+    currentDisplayedModelId = modelId;
+  } catch (error) {
+    console.error('Error displaying tree:', error);
   } finally {
     // Reset the flag when done
     isDisplayingTree = false;
@@ -134,6 +149,17 @@ onMounted(() => {
       displayTree(modelsStore.activeModelId);
     }
   }, { immediate: true });
+  
+  // Watch for when there's no active model to clear the display
+  watch(() => modelsStore.activeModelId, (newModelId) => {
+    if (!newModelId && treeContainer.value) {
+      // Clear the tree container when there's no active model
+      while (treeContainer.value.firstChild) {
+        treeContainer.value.removeChild(treeContainer.value.firstChild);
+      }
+      currentDisplayedModelId = null;
+    }
+  });
 });
 </script>
 

@@ -6,8 +6,8 @@
       :style="{ backgroundColor: settingsStore.viewerSettings.backgroundColor }"
     ></div>
     <Controls
-      :is-loading="isLoading"
-      :has-fragments="hasFragments"
+      :is-loading="converterStore.isLoading"
+      :has-fragments="converterStore.hasFragments"
       :on-file-selected="onFileSelected"
       :select-and-load-file-and-convert="selectAndLoadFileAndConvert"
       :download-fragment="downloadFragment"
@@ -28,7 +28,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { useIfcToFragmentConverter } from "../composables/useIfcToFragmentConverter";
 import * as BUI from "@thatopen/ui";
 import * as BUIC from "@thatopen/ui-obc";
 import * as OBC from "@thatopen/components";
@@ -38,16 +37,15 @@ import ModelTree from "./ModelTree.vue";
 import { useComponentsStore } from "../stores/components";
 import { useModelsStore } from "../stores/models";
 import { useSettingsStore } from "../stores/settings";
+import { useConverterStore } from "../stores/converter";
 
 const modelsStore = useModelsStore();
 const settingsStore = useSettingsStore();
 const componentsStore = useComponentsStore();
+const converterStore = useConverterStore();
 
 const theConverterContainer = ref<HTMLElement | null>(null);
 const controlsRef = ref<InstanceType<typeof Controls> | null>(null);
-let converter: ReturnType<typeof useIfcToFragmentConverter> | null = null;
-const isLoading = ref(false);
-const hasFragments = ref(false);
 const selectedFile = ref<File | null>(null);
 
 // Function to automatically create and store tree data when a model is loaded
@@ -62,6 +60,7 @@ const autoCreateTreeData = async (modelId: string, modelName: string) => {
 const createTreeForModel = async (modelId: string) => {
   if (!componentsStore.components) {
     console.warn('Components not available for tree creation');
+    
     return;
   }
   
@@ -72,6 +71,11 @@ const createTreeForModel = async (modelId: string) => {
     return; // Tree already exists
   }
   
+  // Check if components are available
+  if (!componentsStore.components) {
+    console.error('Components are null when trying to create tree');
+    return;
+  }
   // Get the fragments manager to access loaded models
   const fragments = componentsStore.components.get(OBC.FragmentsManager);
   
@@ -87,6 +91,11 @@ const createTreeForModel = async (modelId: string) => {
   try {
     console.log('Creating tree for model:', modelId);
     // Create spatial tree for this specific model
+    // Ensure all required objects are available before creating tree
+    if (!BUIC || !BUIC.tables || !BUIC.tables.spatialTree) {
+      console.error('BUIC tables or spatialTree function not available');
+      return;
+    }
     const [tree] = BUIC.tables.spatialTree({
       components: componentsStore.components as any,
       models: [fragmentModel] // Pass the actual model object
@@ -146,63 +155,40 @@ const selectAndLoadFileAndConvert = async () => {
 };
 
 const loadIfcFromFile = async () => {
-  if (!converter || !selectedFile.value) return;
+  if (!converterStore.converter || !selectedFile.value) return;
   
-  isLoading.value = true;
+  converterStore.setIsLoading(true);
   try {
-    await converter.loadIfc(selectedFile.value);
-    hasFragments.value = converter.getHasFragments();
+    await converterStore.converter.loadIfc(selectedFile.value);
+    converterStore.setHasFragments(converterStore.converter.getHasFragments());
   } catch (error) {
     console.error('Error loading IFC from file:', error);
   } finally {
-    isLoading.value = false;
+    converterStore.setIsLoading(false);
   }
 };
 
 const loadIfcFromUrl = async () => {
-  if (!converter) return;
+  if (!converterStore.converter) return;
   
-  isLoading.value = true;
+  converterStore.setIsLoading(true);
   try {
-    await converter.loadIfc();
-    hasFragments.value = converter.getHasFragments();
+    await converterStore.converter.loadIfc();
+    converterStore.setHasFragments(converterStore.converter.getHasFragments());
   } catch (error) {
     console.error('Error loading IFC from URL:', error);
   } finally {
-    isLoading.value = false;
+    converterStore.setIsLoading(false);
   }
 };
 
 const downloadFragment = async () => {
-  if (!converter) return;
-  await converter.downloadFragment();
+  if (!converterStore.converter) return;
+  await converterStore.downloadFragment();
 };
 
 const resetModel = async () => {
-  if (!converter) return;
-  
-  // Dispose of the current converter
-  converter.dispose();
-  
-  // Reset state
-  hasFragments.value = false;
-  isLoading.value = false;
-  
-  // Reset models store
-  modelsStore.resetModels();
-  
-  // Clear components store
-  componentsStore.clearComponents();
-  
-  // Reinitialize the converter
-  if (theConverterContainer.value) {
-    converter = useIfcToFragmentConverter({
-      container: theConverterContainer.value
-    });
-    await converter.initialize();
-    // Set the new components in the store
-    componentsStore.setComponents(converter.getComponents());
-  }
+  await converterStore.resetModel();
 };
 
 onMounted(async () => {
@@ -211,17 +197,17 @@ onMounted(async () => {
     return;
   }
 
-  converter = useIfcToFragmentConverter({
-    container: theConverterContainer.value
-  });
+  await converterStore.initializeConverter(theConverterContainer.value);
 
   // Add global error listener
-  window.addEventListener('error', converter.handleWorkerError);
-
-  await converter.initialize();
+  if (converterStore.converter) {
+    window.addEventListener('error', converterStore.converter.handleWorkerError);
+  }
 
   // Get the components instance for the tree
-  componentsStore.setComponents(converter.getComponents());
+  if (converterStore.converter) {
+    componentsStore.setComponents(converterStore.converter.getComponents());
+  }
 
   // Listen for model loaded events
   modelLoadedListener = (event: any) => {
@@ -235,11 +221,22 @@ onMounted(async () => {
     if (componentsStore.components) {
       createTreeForModel(model.uuid);
     } else {
-      console.warn('Components not available for tree creation');
+      console.warn('Components not available for tree creation, retrying in 100ms');
+      // Retry after a short delay to allow components to be set
+      setTimeout(() => {
+        if (componentsStore.components) {
+          createTreeForModel(model.uuid);
+        } else {
+          console.error('Components still not available for tree creation after delay');
+        }
+      }, 100);
+      
     }
   };
-  converter.modelLoadedEvent.addEventListener('modelLoaded', modelLoadedListener);
-  hasFragments.value = converter.getHasFragments();
+  if (converterStore.converter) {
+    converterStore.converter.modelLoadedEvent.addEventListener('modelLoaded', modelLoadedListener);
+  }
+  converterStore.setHasFragments(converterStore.converter ? converterStore.converter.getHasFragments() : false);
   
   // Initialize BUI Manager
   BUI.Manager.init();
@@ -248,12 +245,10 @@ onMounted(async () => {
 
 // Clean up the event listener and dispose of resources
 onUnmounted(() => {
-  if (converter && modelLoadedListener) {
-    converter.modelLoadedEvent.removeEventListener('modelLoaded', modelLoadedListener);
+  if (converterStore.converter && modelLoadedListener) {
+    converterStore.converter.modelLoadedEvent.removeEventListener('modelLoaded', modelLoadedListener);
   }
-  if (converter) {
-    converter.dispose();
-  }
+  // Note: The converter is disposed in the resetModel function in the store
   componentsStore.clearComponents();
 });
 </script>
