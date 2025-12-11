@@ -94,8 +94,12 @@ const createTreeForModel = async (modelId: string) => {
     
     console.log('Tree created for model:', modelId, tree);
     // Store in Pinia
-        modelsStore.addModelTree(modelId, tree);
+    modelsStore.addModelTree(modelId, tree);
     console.log('Tree created and stored for model:', modelId);
+    
+    // Verify that the tree was stored correctly
+    const storedTree = modelsStore.getRawTreeForModel(modelId);
+    console.log('Stored tree verification:', storedTree);
   } catch (error) {
     console.error('Error creating tree for model:', modelId, error);
   }

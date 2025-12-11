@@ -40,12 +40,14 @@ export const useModelsStore = defineStore('models', () => {
     const model = loadedModels.value.find(m => m.id === modelId)
     if (model) {
       model.tree = { rawTree }
-      console.log('Tree added to store for model:', modelId);
+      console.log('Tree added to store for model:', modelId, model.tree);
       
       // If this is the first tree or no active tree is set, set this as active
       if (!activeModelId.value) {
         activeModelId.value = modelId
       }
+    } else {
+      console.error('Model not found when trying to add tree:', modelId);
     }
   }
 
@@ -54,15 +56,6 @@ export const useModelsStore = defineStore('models', () => {
     activeModelId.value = modelId
   }
   
-  const setActiveTree = (modelId: string) => {
-    // Check if we have a model with this ID
-    const modelExists = loadedModels.value.some(model => model.id === modelId)
-    if (modelExists) {
-      console.log('Setting active tree:', modelId);
-      activeModelId.value = modelId
-    }
-  }
-
   const removeModel = (modelId: string) => {
     const index = loadedModels.value.findIndex(model => model.id === modelId)
     if (index !== -1) {
@@ -80,7 +73,16 @@ export const useModelsStore = defineStore('models', () => {
   
   const getRawTreeForModel = (modelId: string) => {
     const model = loadedModels.value.find(model => model.id === modelId)
-    return model && model.tree ? model.tree.rawTree : null
+    console.log('Getting raw tree for model:', modelId);
+    console.log('Found model:', model);
+    if (model && model.tree) {
+      console.log('Returning raw tree:', model.tree.rawTree);
+      return model.tree.rawTree;
+    }
+    console.log('No tree found for model:', modelId);
+    // Log all models and their trees for debugging
+    console.log('All models and their trees:', loadedModels.value.map(m => ({ id: m.id, hasTree: !!m.tree })));
+    return null;
   }
 
   return {
@@ -91,7 +93,6 @@ export const useModelsStore = defineStore('models', () => {
     addModel,
     addModelTree,
     setActiveModel,
-    setActiveTree,
     removeModel,
     resetModels,
     getRawTreeForModel
