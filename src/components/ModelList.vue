@@ -6,8 +6,7 @@
         v-for="model in modelsStore.loadedModels"
         :key="model.id"
         class="model-item"
-        :class="{ 'active': model.id === modelsStore.activeModelId }"
-       @click="onModelSelect(model.id)"
+        @click="onModelSelect(model.id)"
       >
         {{ model.name }}
       </li>
@@ -22,7 +21,7 @@ const modelsStore = useModelsStore();
 
 const onModelSelect = (modelId: string) => {
   console.log('Model selected from list:', modelId);
-  modelsStore.setActiveModel(modelId);
+  // Model selection logic can be added here if needed
 };
 </script>
 

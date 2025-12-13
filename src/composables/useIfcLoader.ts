@@ -7,8 +7,7 @@ import { usePerformanceMonitor } from "./usePerformanceMonitor";
 export interface IfcToFragmentConverterOptions {
   /** The HTML element where the 3D viewer will be rendered */
   container: HTMLElement;
-  /** Optional URL to an IFC file to load by default */
-  ifcPath?: string;
+  
   /** Optional URL to the worker script for fragment processing */
   workerUrl?: string;
 }
@@ -21,7 +20,7 @@ export interface IfcToFragmentConverterOptions {
  *
  * @param options - Configuration options for the converter
  * @param options.container - The HTML element where the 3D viewer will be rendered
- * @param options.ifcPath - Optional URL to an IFC file to load by default
+ 
  * @param options.workerUrl - Optional URL to the worker script for fragment processing
  *
  * @returns An object containing methods to control the IFC to fragment conversion process:
@@ -37,8 +36,8 @@ export interface IfcToFragmentConverterOptions {
  * - handleWorkerError: Handles worker-related errors
  * - modelLoadedEvent: Event target for model loaded events
  */
-export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions) {
-  const { container, ifcPath = "https://thatopen.github.io/engine_components/resources/ifc/school_str.ifc", workerUrl = "/resources/worker.mjs" } = options;
+export function useIfcLoader(options: IfcToFragmentConverterOptions) {
+  const { container, workerUrl = "/resources/worker.mjs" } = options;
   
   const components = new OBC.Components();
   const worlds = components.get(OBC.Worlds);
@@ -139,7 +138,7 @@ export function useIfcToFragmentConverter(options: IfcToFragmentConverterOptions
   // Store the last loaded file name for use in download
   let lastLoadedFileName = 'example';
   
-  const loadIfc = async (path: string | File = ifcPath) => {
+  const loadIfc = async (path: string | File) => {
     let buffer: Uint8Array;
     
     if (typeof path === 'string') {
