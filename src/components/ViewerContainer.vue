@@ -9,7 +9,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import * as BUI from "@thatopen/ui";
-import * as BUIC from "@thatopen/ui-obc";
 import * as OBC from "@thatopen/components";
 import { useModelsStore } from "../stores/models";
 
@@ -17,80 +16,6 @@ const modelsStore = useModelsStore();
 
 const viewerContainer = ref<HTMLElement | null>(null);
 let modelLoadedListener: any = null;
-
-const createTreeForModel = async (modelName: string) => {
-  // Check if the model still exists in the store
-  const modelExists = modelsStore.loadedModels.some(model => model.name === modelName);
-  if (!modelExists) {
-    console.log('Model no longer exists, skipping tree creation:', modelName);
-    return;
-  }
-  
-  if (!modelsStore.components) {
-    console.warn('Components not available for tree creation');
-    return;
-  }
-  
-  // Check if we already have a tree for this model
-  const existingTree = modelsStore.getRawTreeForModel(modelName);
-  if (existingTree) {
-    console.log('Tree already exists for model:', modelName);
-    return; // Tree already exists
-  }
-  
-  // Check if components are available
-  if (!modelsStore.components) {
-    console.error('Components are null when trying to create tree');
-    return;
-  }
-  
-  // Get the fragments manager to access loaded models
-  const fragments = modelsStore.components.get(OBC.FragmentsManager);
-  
-  // Get the actual model object from fragments
-  const fragmentModel = fragments.list.get(modelName);
-  if (!fragmentModel) {
-    console.error('Model not found in fragments list:', modelName);
-    return;
-  }
-  
-  console.log('Model found for tree creation:', modelName, fragmentModel);
-  
-  try {
-    console.log('Creating tree for model:', modelName);
-    // Create spatial tree for this specific model
-    // Ensure all required objects are available before creating tree
-    if (!BUIC || !BUIC.tables || !BUIC.tables.spatialTree) {
-      console.error('BUIC tables or spatialTree function not available');
-      return;
-    }
-    const [tree] = BUIC.tables.spatialTree({
-      components: modelsStore.components as any,
-      //models: [fragmentModel] // Pass the actual model object
-      models: [] // Follow the instruction
-    });
-    tree.preserveStructureOnFilter = true;
-   
-    
-    // Double-check that the model still exists before storing the tree
-    const modelStillExists = modelsStore.loadedModels.some(model => model.name === modelName);
-    if (!modelStillExists) {
-      console.log('Model no longer exists, discarding tree:', modelName);
-      return;
-    }
-    
-    console.log('Tree created for model:', modelName, tree);
-    // Store in Pinia
-    modelsStore.addModelTree(modelName, tree);
-    console.log('Tree created and stored for model:', modelName);
-    
-    // Verify that the tree was stored correctly
-    const storedTree = modelsStore.getRawTreeForModel(modelName);
-    console.log('Stored tree verification:', storedTree);
-  } catch (error) {
-    console.error('Error creating tree for model:', modelName, error);
-  }
-};
 
 const addModelToList = (name: string) => {
   modelsStore.addModel(name);
@@ -125,26 +50,17 @@ onMounted(async () => {
       const { model } = event.detail;
       addModelToList(model.name);
       // Create tree for the loaded model
-      console.log('Creating tree for loaded model:', model.uuid, model.name);
+      console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+      console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+      console.log('Creating tree for loaded model:', 'model uuid:', model.uuid, model.name);
       // Add a small delay to ensure components are properly set
       setTimeout(() => {
         // Make sure components are available and model still exists
         if (modelsStore.components) {
-          createTreeForModel(model.name);
+          // Tree creation is now handled by ModelTree.vue component
+          console.log('Model loaded, tree creation will be handled by ModelTree.vue');
         } else {
-          console.warn('Components not available for tree creation, retrying in 100ms');
-          // Retry after a short delay to allow components to be set
-          setTimeout(() => {
-            // Check again if model still exists before creating tree
-            const modelStillExists = modelsStore.loadedModels.some(m => m.name === model.name);
-            if (modelStillExists && modelsStore.components) {
-              createTreeForModel(model.name);
-            } else if (!modelStillExists) {
-              console.log('Model no longer exists, skipping tree creation:', model.name);
-            } else {
-              console.error('Components still not available for tree creation after delay');
-            }
-          }, 100);
+          console.warn('Components not available for tree creation');
         }
       }, 50);
     };

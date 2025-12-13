@@ -18,6 +18,7 @@ let isResetting = false;
 
 export const useModelsStore = defineStore('models', () => {
   const loadedModels = ref<Model[]>([])
+  const singleTree = ref<any>(null)
   
   // Components state
   const components = ref<OBC.Components | null>(null)
@@ -79,10 +80,13 @@ export const useModelsStore = defineStore('models', () => {
       }
       
       loadedModels.value.splice(index, 1)
+      
+      // Clear single tree if no models left
+      if (loadedModels.value.length === 0) {
+        clearSingleTree();
+      }
     }
   }
-  
-
   
   const getRawTreeForModel = (modelName: string) => {
     // Don't return trees during reset
@@ -131,6 +135,9 @@ export const useModelsStore = defineStore('models', () => {
       
       // Clear models first to prevent any UI updates during cleanup
       loadedModels.value = []
+      
+      // Clear single tree
+      clearSingleTree()
       
       // Clear components store
       clearComponents()
@@ -192,6 +199,19 @@ export const useModelsStore = defineStore('models', () => {
     components.value = null
   }
   
+  // Single tree functions
+  const setSingleTree = (tree: any) => {
+    singleTree.value = tree;
+  }
+  
+  const getSingleTree = () => {
+    return singleTree.value;
+  }
+  
+  const clearSingleTree = () => {
+    singleTree.value = null;
+  }
+  
   return {
     loadedModels,
     addModel,
@@ -211,6 +231,12 @@ export const useModelsStore = defineStore('models', () => {
     // Components functions
     components,
     setComponents,
-    clearComponents
+    clearComponents,
+    
+    // Single tree functions
+    singleTree,
+    setSingleTree,
+    getSingleTree,
+    clearSingleTree
   }
 })

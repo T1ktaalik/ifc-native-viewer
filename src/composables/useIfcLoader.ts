@@ -160,7 +160,8 @@ export function useIfcLoader(options: IfcToFragmentConverterOptions) {
     await ifcLoader.load(buffer, true, lastLoadedFileName, {
       processData: {
         progressCallback: (progress: number) => {
-          console.log(`IFC processing progress: ${progress}%`);
+         /*  console.log(`IFC processing progress: ${progress}%`); */
+         // omit progress not to overload console
         },
         
       }
