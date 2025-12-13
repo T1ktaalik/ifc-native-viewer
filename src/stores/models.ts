@@ -9,7 +9,6 @@ interface ModelTree {
 }
 
 interface Model {
-  id: string
   name: string
   tree: ModelTree | null
 }
@@ -29,40 +28,40 @@ export const useModelsStore = defineStore('models', () => {
   const hasFragments = ref(false)
   const isLoading = ref(false)
   
-  const addModel = (id: string, name: string) => {
+  const addModel = (name: string) => {
     // Don't add models during reset
     if (isResetting) {
-      console.log('Skipping model addition during reset:', id, name);
+      console.log('Skipping model addition during reset:', name);
       return;
     }
-    loadedModels.value.push({ id, name, tree: null })
-    console.log('Model added to store:', id, name);
+    loadedModels.value.push({ name, tree: null })
+    console.log('Model added to store:', name);
   }
   
-  const addModelTree = (modelId: string, rawTree: any) => {
+  const addModelTree = (modelName: string, rawTree: any) => {
     // Don't add trees during reset
     if (isResetting) {
-      console.log('Skipping tree addition during reset:', modelId);
+      console.log('Skipping tree addition during reset:', modelName);
       return;
     }
     
-    const model = loadedModels.value.find(m => m.id === modelId)
+    const model = loadedModels.value.find(m => m.name === modelName)
     if (model) {
       model.tree = { rawTree }
-      console.log('Tree added to store for model:', modelId, model.tree);
+      console.log('Tree added to store for model:', modelName, model.tree);
     } else {
-      console.error('Model not found when trying to add tree:', modelId);
+      console.error('Model not found when trying to add tree:', modelName);
     }
   }
   
-  const removeModel = (modelId: string) => {
+  const removeModel = (modelName: string) => {
     // Don't remove models during reset
     if (isResetting) {
-      console.log('Skipping model removal during reset:', modelId);
+      console.log('Skipping model removal during reset:', modelName);
       return;
     }
     
-    const index = loadedModels.value.findIndex(model => model.id === modelId)
+    const index = loadedModels.value.findIndex(model => model.name === modelName)
     if (index !== -1) {
       // Get the model before removing it
       const model = loadedModels.value[index];
@@ -85,23 +84,23 @@ export const useModelsStore = defineStore('models', () => {
   
 
   
-  const getRawTreeForModel = (modelId: string) => {
+  const getRawTreeForModel = (modelName: string) => {
     // Don't return trees during reset
     if (isResetting) {
-      console.log('Skipping tree retrieval during reset:', modelId);
+      console.log('Skipping tree retrieval during reset:', modelName);
       return null;
     }
     
-    const model = loadedModels.value.find(model => model.id === modelId)
-    console.log('Getting raw tree for model:', modelId);
+    const model = loadedModels.value.find(model => model.name === modelName)
+    console.log('Getting raw tree for model:', modelName);
     console.log('Found model:', model);
     if (model && model.tree) {
       console.log('Returning raw tree:', model.tree.rawTree);
       return model.tree.rawTree;
     }
-    console.log('No tree found for model:', modelId);
+    console.log('No tree found for model:', modelName);
     // Log all models and their trees for debugging
-    console.log('All models and their trees:', loadedModels.value.map(m => ({ id: m.id, hasTree: !!m.tree })));
+    console.log('All models and their trees:', loadedModels.value.map(m => ({ name: m.name, hasTree: !!m.tree })));
     return null;
   }
   

@@ -1,16 +1,9 @@
 <template>
   <div class="model-tree-container">
-    <h4 v-if="modelsStore.loadedModels.length > 0">
-      Model Structures
-    </h4>
     <div v-if="modelsStore.loadedModels.length > 0" class="trees-container">
-      <div
-        v-for="model in modelsStore.loadedModels"
-        :key="model.id"
-        class="model-tree-item"
-      >
+      <div v-for="model in modelsStore.loadedModels" :key="model.name" class="model-tree-item">
         <h5>{{ model.name }}</h5>
-        <div class="tree-container" :id="'tree-container-' + model.id"></div>
+        <div class="tree-wrapper" :id="'tree-wrapper-' + model.name"></div>
       </div>
     </div>
     <div v-else class="no-model">
@@ -20,69 +13,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { watch, nextTick } from 'vue';
 import { useModelsStore } from '../stores/models';
 
 const modelsStore = useModelsStore();
-
-
-// Function to display an existing tree for a model
-const displayTree = (modelId: string) => {
-  try {
-    console.log('Attempting to display tree for model:', modelId);
-    
-    // Get the tree container by ID
-    const treeContainer = document.getElementById('tree-container-' + modelId);
-    if (!treeContainer) {
-      console.warn('No tree container found for model:', modelId);
-      return;
-    }
-    
-    console.log('Tree container found for model:', modelId);
-    
-    // Clear previous tree if exists
-    while (treeContainer.firstChild) {
-      try {
-        treeContainer.removeChild(treeContainer.firstChild);
-      } catch (e) {
-        // Ignore errors when removing child nodes
-        break;
-      }
-    }
-    
-    // Get the existing tree for this model
-    const existingTree = modelsStore.getRawTreeForModel(modelId);
-    console.log('Model ID:', modelId);
-    console.log('Existing tree:', existingTree);
-    
-    if (existingTree) {
-      console.log('Displaying existing tree for model:', modelId);
-      try {
-        // Remove from existing parent if it has one
-        if (existingTree.parentNode) {
-          try {
-            existingTree.parentNode.removeChild(existingTree);
-          } catch (e) {
-            // Ignore errors when removing from parent
-          }
-        }
-        // Add existing tree
-        treeContainer.appendChild(existingTree);
-        console.log('Tree successfully appended to container for model:', modelId);
-      } catch (error) {
-        console.error('Error appending tree to container:', error);
-        // Fallback: Show error message
-        treeContainer.innerHTML = '<p>Error displaying tree: ' + (error instanceof Error ? error.message : String(error)) + '</p>';
-      }
-    } else {
-      console.warn('No tree found for model:', modelId);
-      // Show a message to the user
-      treeContainer.innerHTML = '<p>Tree data not available for this model</p>';
-    }
-  } catch (error) {
-    console.error('Error displaying tree for model:', modelId, error);
-  }
-};
 
 // Watch for changes in loaded models to display trees
 watch(
@@ -92,33 +26,61 @@ watch(
     
     // Use nextTick to ensure DOM is updated before displaying trees
     nextTick(() => {
-      console.log('Next tick executed, displaying trees for models');
-      newModels.forEach(model => {
-        if (model.id) {
-          console.log('Displaying tree for model:', model.id);
-          displayTree(model.id);
-        }
-      });
+      console.log('Next tick executed, updating tree wrappers');
+      updateTreeWrappers();
     });
   },
-  { immediate: true, deep: true }
+  { deep: true }
 );
 
-// Watch for when there are no models to clear the display
-watch(
-  () => modelsStore.loadedModels.length,
-  (newLength) => {
-    if (newLength === 0) {
-      // Clear all tree containers by finding them in the DOM
-      const treeContainers = document.querySelectorAll('.tree-container');
-      treeContainers.forEach(container => {
-        while (container.firstChild) {
-          container.removeChild(container.firstChild);
+// Function to update tree wrappers with existing trees
+const updateTreeWrappers = () => {
+  try {
+    modelsStore.loadedModels.forEach(model => {
+      if (model.name) {
+        // Get the tree wrapper by ID
+        const treeWrapper = document.getElementById('tree-wrapper-' + model.name);
+        if (!treeWrapper) {
+          console.warn('No tree wrapper found for model:', model.name);
+          return;
         }
-      });
-    }
+        
+        // Clear previous content
+        while (treeWrapper.firstChild) {
+          treeWrapper.removeChild(treeWrapper.firstChild);
+        }
+        
+        // Get the existing tree for this model
+        const existingTree = modelsStore.getRawTreeForModel(model.name);
+        console.log('Model name:', model.name);
+        console.log('Existing tree:', existingTree);
+        
+        if (existingTree) {
+          console.log('Displaying existing tree for model:', model.name);
+          try {
+            // Remove from existing parent if it has one
+            if (existingTree.parentNode) {
+              try {
+                existingTree.parentNode.removeChild(existingTree);
+              } catch (e) {
+                // Ignore errors when removing from parent
+              }
+            }
+            // Add existing tree directly to the wrapper
+            treeWrapper.appendChild(existingTree);
+            console.log('Tree successfully appended to wrapper for model:', model.name);
+          } catch (error) {
+            console.error('Error appending tree to wrapper:', error);
+          }
+        } else {
+          console.warn('No tree found for model:', model.name);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error updating tree wrappers:', error);
   }
-);
+};
 </script>
 
 <style scoped>
@@ -128,17 +90,12 @@ watch(
   overflow-y: auto;
 }
 
-.trees-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .model-tree-item {
   border: 1px solid #dee2e6;
   border-radius: 4px;
   padding: 0.5rem;
   background-color: #f8f9fa;
+  margin-bottom: 1rem;
 }
 
 .model-tree-item h5 {
@@ -147,7 +104,7 @@ watch(
   color: #343a40;
 }
 
-.tree-container {
+.tree-wrapper {
   width: 100%;
   min-height: 200px;
   border: 1px solid #dee2e6;

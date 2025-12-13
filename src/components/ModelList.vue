@@ -4,9 +4,9 @@
     <ul class="model-list">
       <li
         v-for="model in modelsStore.loadedModels"
-        :key="model.id"
+        :key="model.name"
         class="model-item"
-        @click="onModelSelect(model.id)"
+        @click="onModelSelect(model.name)"
       >
         {{ model.name }}
       </li>
@@ -19,8 +19,8 @@ import { useModelsStore } from '../stores/models';
 
 const modelsStore = useModelsStore();
 
-const onModelSelect = (modelId: string) => {
-  console.log('Model selected from list:', modelId);
+const onModelSelect = (modelName: string) => {
+  console.log('Model selected from list:', modelName);
   // Model selection logic can be added here if needed
 };
 </script>
