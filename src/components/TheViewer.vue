@@ -13,21 +13,18 @@
       :reset-model="resetModel"
       ref="controlsRef"
     />
-    <ModelList
-      class="model-list-sidebar"
+    <ModelNavigator
+      class="model-navigator"
     />
-    <ModelTree
-      class="tree-container"
-    />
+    
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 import ViewerContainer from "./ViewerContainer.vue";
-import ModelList from "./ModelList.vue";
 import Controls from "./Controls.vue";
-import ModelTree from "./ModelTree.vue";
+import ModelNavigator from "./ModelNavigator.vue";
 import { useModelsStore } from "../stores/models";
 
 const modelsStore = useModelsStore();
@@ -171,26 +168,13 @@ const resetModel = async () => {
   background-color: #dc3545;
 }
 
-/* Model list sidebar styles */
-.model-list-sidebar {
+/* Model navigator styles */
+.model-navigator {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 250px;
+  width: 350px;
   max-height: calc(100% - 20px);
   z-index: 100;
-}
-
-/* Tree container styles */
-.tree-container {
-  position: absolute;
-  top: 10px;
-  right: 270px; /* Position next to model list */
-  width: 300px;
-  max-height: calc(100% - 20px);
-  z-index: 100;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
 }
 </style>
