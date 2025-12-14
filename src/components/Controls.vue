@@ -19,13 +19,6 @@
     </div>
     <button
       v-if="hasFragments"
-      @click="downloadFragment"
-      class="download-btn"
-    >
-      Download Fragments
-    </button>
-    <button
-      v-if="hasFragments"
       @click="resetModel"
       class="reset-btn"
     >
@@ -42,7 +35,6 @@ const props = defineProps<{
   hasFragments: boolean
   onFileSelected: (event: Event) => void
   selectAndLoadFileAndConvert: () => void
-  downloadFragment: () => void
   resetModel: () => void
 }>()
 
@@ -81,10 +73,6 @@ defineExpose({
 .controls button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
-}
-
-.controls .download-btn {
-  background-color: #28a745;
 }
 
 .controls .reset-btn {

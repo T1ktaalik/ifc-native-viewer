@@ -4,13 +4,9 @@ import * as OBC from '@thatopen/components'
 import { useIfcLoader } from '../composables/useIfcLoader'
 
 
-interface ModelTree {
-  rawTree: any // The actual tree component from @thatopen/ui-obc
-}
-
 interface Model {
   name: string
-  tree: ModelTree | null
+  rawTree: any | null // The actual tree component from @thatopen/ui-obc
 }
 
 // Add a flag to track if we're currently resetting
@@ -19,6 +15,7 @@ let isResetting = false;
 export const useModelsStore = defineStore('models', () => {
   const loadedModels = ref<Model[]>([])
   const singleTree = ref<any>(null)
+  const singleModelsList = ref<any>(null)
   
   // Components state
   const components = ref<OBC.Components | null>(null)
@@ -35,7 +32,7 @@ export const useModelsStore = defineStore('models', () => {
       console.log('Skipping model addition during reset:', name);
       return;
     }
-    loadedModels.value.push({ name, tree: null })
+    loadedModels.value.push({ name, rawTree: null })
     console.log('Model added to store:', name);
   }
   
@@ -48,8 +45,8 @@ export const useModelsStore = defineStore('models', () => {
     
     const model = loadedModels.value.find(m => m.name === modelName)
     if (model) {
-      model.tree = { rawTree }
-      console.log('Tree added to store for model:', modelName, model.tree);
+      model.rawTree = rawTree;
+      console.log('Tree added to store for model:', modelName, model.rawTree);
     } else {
       console.error('Model not found when trying to add tree:', modelName);
     }
@@ -68,11 +65,11 @@ export const useModelsStore = defineStore('models', () => {
       const model = loadedModels.value[index];
       
       // Clean up the tree if it exists
-      if (model && model.tree && model.tree.rawTree) {
+      if (model && model.rawTree) {
         try {
           // Remove the tree from its parent container if it has one
-          if (model.tree.rawTree.parentNode) {
-            model.tree.rawTree.parentNode.removeChild(model.tree.rawTree);
+          if (model.rawTree.parentNode) {
+            model.rawTree.parentNode.removeChild(model.rawTree);
           }
         } catch (e) {
           // Ignore errors when cleaning up the tree
@@ -98,13 +95,13 @@ export const useModelsStore = defineStore('models', () => {
     const model = loadedModels.value.find(model => model.name === modelName)
     console.log('Getting raw tree for model:', modelName);
     console.log('Found model:', model);
-    if (model && model.tree) {
-      console.log('Returning raw tree:', model.tree.rawTree);
-      return model.tree.rawTree;
+    if (model && model.rawTree) {
+      console.log('Returning raw tree:', model.rawTree);
+      return model.rawTree;
     }
     console.log('No tree found for model:', modelName);
     // Log all models and their trees for debugging
-    console.log('All models and their trees:', loadedModels.value.map(m => ({ name: m.name, hasTree: !!m.tree })));
+    console.log('All models and their trees:', loadedModels.value.map(m => ({ name: m.name, hasTree: !!m.rawTree })));
     return null;
   }
   
@@ -139,6 +136,9 @@ export const useModelsStore = defineStore('models', () => {
       // Clear single tree
       clearSingleTree()
       
+      // Clear single models list
+      clearSingleModelsList()
+      
       // Clear components store
       clearComponents()
       
@@ -169,11 +169,6 @@ export const useModelsStore = defineStore('models', () => {
       // Always reset the flag
       isResetting = false;
     }
-  }
-  
-  const downloadFragment = async () => {
-    if (!converter.value) return
-    await converter.value.downloadFragment()
   }
   
   const getHasFragments = () => {
@@ -212,6 +207,19 @@ export const useModelsStore = defineStore('models', () => {
     singleTree.value = null;
   }
   
+  // Single models list functions
+  const setSingleModelsList = (modelsList: any) => {
+    singleModelsList.value = modelsList;
+  }
+  
+  const getSingleModelsList = () => {
+    return singleModelsList.value;
+  }
+  
+  const clearSingleModelsList = () => {
+    singleModelsList.value = null;
+  }
+  
   return {
     loadedModels,
     addModel,
@@ -223,7 +231,6 @@ export const useModelsStore = defineStore('models', () => {
     // Converter functions
     initializeConverter,
     resetModel,
-    downloadFragment,
     getHasFragments,
     getConverter,
     dispose,
@@ -237,6 +244,12 @@ export const useModelsStore = defineStore('models', () => {
     singleTree,
     setSingleTree,
     getSingleTree,
-    clearSingleTree
+    clearSingleTree,
+    
+    // Single models list functions
+    singleModelsList,
+    setSingleModelsList,
+    getSingleModelsList,
+    clearSingleModelsList
   }
 })

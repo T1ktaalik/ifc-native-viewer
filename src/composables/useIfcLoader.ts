@@ -1,5 +1,6 @@
 import * as OBC from "@thatopen/components";
 import { usePerformanceMonitor } from "./usePerformanceMonitor";
+import { useSceneManager } from "./useSceneManager";
 
 /**
  * Configuration options for the IFC to Fragment converter
@@ -15,18 +16,16 @@ export interface IfcToFragmentConverterOptions {
 /**
  * A composable function that provides IFC to Fragment conversion functionality.
  *
- * This function initializes a 3D viewer using @thatopen/components library and provides
- * methods to load IFC files, convert them to fragment format, and manage the 3D scene.
+ * This function uses a scene manager to handle 3D scene operations and provides
+ * methods to load IFC files and convert them to fragment format.
  *
  * @param options - Configuration options for the converter
  * @param options.container - The HTML element where the 3D viewer will be rendered
- 
  * @param options.workerUrl - Optional URL to the worker script for fragment processing
  *
  * @returns An object containing methods to control the IFC to fragment conversion process:
  * - initialize: Initializes the 3D viewer and components
  * - loadIfc: Loads an IFC file from a URL or File object
- * - downloadFragment: Downloads the converted fragment as a .frag file
  * - getStats: Returns the performance statistics objects
  * - getComponents: Returns the components manager instance
  * - getWorld: Returns the world instance
@@ -39,30 +38,18 @@ export interface IfcToFragmentConverterOptions {
 export function useIfcLoader(options: IfcToFragmentConverterOptions) {
   const { container, workerUrl = "/resources/worker.mjs" } = options;
   
-  const components = new OBC.Components();
-  const worlds = components.get(OBC.Worlds);
-  const world = worlds.create<
-    OBC.SimpleScene,
-    OBC.OrthoPerspectiveCamera,
-    OBC.SimpleRenderer
-  >();
+  // Use scene manager for 3D scene operations
+  const sceneManager = useSceneManager({ container });
   
-  world.scene = new OBC.SimpleScene(components);
-  world.scene.setup();
-  world.scene.three.background = null;
-  
-  world.renderer = new OBC.SimpleRenderer(components, container);
-  world.camera = new OBC.OrthoPerspectiveCamera(components);
-  
-  const fragments = components.get(OBC.FragmentsManager);
+  const components = sceneManager.getComponents();
+  const world = sceneManager.getWorld();
+  const fragments = sceneManager.getFragments();
   const ifcLoader = components.get(OBC.IfcLoader);
   
   const performanceMonitor = usePerformanceMonitor(container);
   
   const initialize = async () => {
-    await world.camera.controls.setLookAt(78, 20, -2.2, 26, -4, 25);
-    components.init();
-    components.get(OBC.Grids).create(world);
+    await sceneManager.initialize();
     
     ifcLoader.onIfcImporterInitialized.add((importer) => {
       console.log(importer.classes);
@@ -107,17 +94,6 @@ export function useIfcLoader(options: IfcToFragmentConverterOptions) {
     });
     
     // Initialize stats panels
-    // Remove borders from all canvas elements
-    const removeCanvasBorders = () => {
-      setTimeout(() => {
-        const canvases = container.querySelectorAll('canvas');
-        canvases.forEach(canvas => {
-          (canvas as HTMLElement).style.border = "none";
-        });
-      }, 100);
-    };
-    
-    removeCanvasBorders();
     performanceMonitor.initialize();
     
     if (world.renderer) {
@@ -168,19 +144,6 @@ export function useIfcLoader(options: IfcToFragmentConverterOptions) {
     });
   };
   
-  const downloadFragment = async () => {
-    const [model] = fragments.list.values();
-    if (!model) return;
-    const fragsBuffer = await model.getBuffer(false);
-    const fileName = `${lastLoadedFileName}.frag`;
-    const file = new File([fragsBuffer], fileName);
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(file);
-    link.download = file.name;
-    link.click();
-    URL.revokeObjectURL(link.href);
-  };
-  
   const getStats = () => performanceMonitor.getStats();
   const getComponents = () => components;
   const getWorld = () => world;
@@ -193,7 +156,7 @@ export function useIfcLoader(options: IfcToFragmentConverterOptions) {
     window.removeEventListener('error', handleWorkerError);
     
     // Dispose components
-    components.dispose();
+    sceneManager.dispose();
     
     // Dispose stats
     performanceMonitor.dispose();
@@ -214,7 +177,6 @@ export function useIfcLoader(options: IfcToFragmentConverterOptions) {
   return {
     initialize,
     loadIfc,
-    downloadFragment,
     getStats,
     getComponents,
     getWorld,

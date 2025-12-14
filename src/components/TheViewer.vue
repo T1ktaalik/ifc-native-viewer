@@ -9,7 +9,6 @@
       :has-fragments="hasFragments"
       :on-file-selected="onFileSelected"
       :select-and-load-file-and-convert="selectAndLoadFileAndConvert"
-      :download-fragment="downloadFragment"
       :reset-model="resetModel"
       ref="controlsRef"
     />
@@ -76,17 +75,6 @@ const loadIfcFromFile = async () => {
     console.error('Error loading IFC from file:', error);
   } finally {
     isLoading.value = false;
-  }
-};
-
-
-
-const downloadFragment = async () => {
-  if (!viewerContainerRef.value) return;
-  
-  const converter = viewerContainerRef.value.getConverter();
-  if (converter) {
-    await converter.downloadFragment();
   }
 };
 
