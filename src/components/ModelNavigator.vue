@@ -1,7 +1,7 @@
 <template>
   <div class="model-navigator-container">
     <div class="content-section">
-      <div v-if="modelsStore.loadedModels.length > 0" class="models-content">
+      <div class="models-content">
         <div class="models-list-container">
           <h4>Model List</h4>
           <div class="models-list-wrapper" ref="modelsListWrapper"></div>
@@ -11,9 +11,6 @@
           <h4>Model Tree</h4>
           <div class="tree-wrapper" ref="treeWrapper"></div>
         </div>
-      </div>
-      <div v-else class="no-model">
-        <p>No models loaded</p>
       </div>
     </div>
   </div>

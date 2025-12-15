@@ -1,188 +1,77 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import * as OBC from '@thatopen/components'
-import { useIfcLoader } from '../composables/useIfcLoader'
-
-
-interface Model {
-  name: string
-  rawTree: any | null // The actual tree component from @thatopen/ui-obc
-}
-
-// Add a flag to track if we're currently resetting
-let isResetting = false;
+import { ref, computed } from 'vue'
+import * as OBC from "@thatopen/components";
 
 export const useModelsStore = defineStore('models', () => {
-  const loadedModels = ref<Model[]>([])
+  // UI Components state
+  const tree = ref<any>(null)
+  const modelsList = ref<any>(null)
+  
+  // Components and models state
+  const components = ref<OBC.Components | null>(null)
+  const loadedModels = ref<any[]>([])
   const singleTree = ref<any>(null)
   const singleModelsList = ref<any>(null)
   
-  // Components state
-  const components = ref<OBC.Components | null>(null)
-  
-  // Converter state variables
-  const converter = ref<ReturnType<typeof useIfcLoader> | null>(null)
-  const theConverterContainer = ref<HTMLElement | null>(null)
-  const hasFragments = ref(false)
-  const isLoading = ref(false)
-  
-  const addModel = (name: string) => {
-    // Don't add models during reset
-    if (isResetting) {
-      console.log('Skipping model addition during reset:', name);
-      return;
+  // Computed property for fragments list size
+  const fragmentsCount = computed(() => {
+    if (components.value) {
+      const fragments = components.value.get(OBC.FragmentsManager);
+      return fragments ? fragments.list.size : 0;
     }
-    loadedModels.value.push({ name, rawTree: null })
-    console.log('Model added to store:', name);
+    return 0;
+  })
+  
+  // Tree functions
+  const setTree = (newTree: any) => {
+    tree.value = newTree
   }
   
-  const addModelTree = (modelName: string, rawTree: any) => {
-    // Don't add trees during reset
-    if (isResetting) {
-      console.log('Skipping tree addition during reset:', modelName);
-      return;
-    }
-    
-    const model = loadedModels.value.find(m => m.name === modelName)
-    if (model) {
-      model.rawTree = rawTree;
-      console.log('Tree added to store for model:', modelName, model.rawTree);
-    } else {
-      console.error('Model not found when trying to add tree:', modelName);
-    }
+  const getTree = () => {
+    return tree.value
   }
   
-  const removeModel = (modelName: string) => {
-    // Don't remove models during reset
-    if (isResetting) {
-      console.log('Skipping model removal during reset:', modelName);
-      return;
-    }
-    
-    const index = loadedModels.value.findIndex(model => model.name === modelName)
-    if (index !== -1) {
-      // Get the model before removing it
-      const model = loadedModels.value[index];
-      
-      // Clean up the tree if it exists
-      if (model && model.rawTree) {
-        try {
-          // Remove the tree from its parent container if it has one
-          if (model.rawTree.parentNode) {
-            model.rawTree.parentNode.removeChild(model.rawTree);
-          }
-        } catch (e) {
-          // Ignore errors when cleaning up the tree
-        }
-      }
-      
-      loadedModels.value.splice(index, 1)
-      
-      // Clear single tree if no models left
-      if (loadedModels.value.length === 0) {
-        clearSingleTree();
-      }
-    }
+  const clearTree = () => {
+    tree.value = null
   }
   
-  const getRawTreeForModel = (modelName: string) => {
-    // Don't return trees during reset
-    if (isResetting) {
-      console.log('Skipping tree retrieval during reset:', modelName);
-      return null;
-    }
-    
-    const model = loadedModels.value.find(model => model.name === modelName)
-    console.log('Getting raw tree for model:', modelName);
-    console.log('Found model:', model);
-    if (model && model.rawTree) {
-      console.log('Returning raw tree:', model.rawTree);
-      return model.rawTree;
-    }
-    console.log('No tree found for model:', modelName);
-    // Log all models and their trees for debugging
-    console.log('All models and their trees:', loadedModels.value.map(m => ({ name: m.name, hasTree: !!m.rawTree })));
-    return null;
+  // Single tree functions
+  const setSingleTree = (newTree: any) => {
+    singleTree.value = newTree
   }
   
-  // Converter functions
-  const initializeConverter = async (container: HTMLElement) => {
-    theConverterContainer.value = container
-    converter.value = useIfcLoader({
-      container: container
-    })
-    
-    await converter.value.initialize()
-    
-    // Set the components in the store
-    setComponents(converter.value.getComponents())
+  const getSingleTree = () => {
+    return singleTree.value
   }
   
-  const resetModel = async () => {
-    if (!converter.value) {
-      console.log('Converter not initialized')
-      return
-    }
-    
-    // Set the resetting flag to prevent other operations
-    isResetting = true;
-    
-    try {
-      console.log('Resetting model...')
-      
-      // Clear models first to prevent any UI updates during cleanup
-      loadedModels.value = []
-      
-      // Clear single tree
-      clearSingleTree()
-      
-      // Clear single models list
-      clearSingleModelsList()
-      
-      // Clear components store
-      clearComponents()
-      
-      // Dispose of the current converter
-      converter.value.dispose()
-      
-      // Add a longer delay to ensure all cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
-      // Reset state
-      hasFragments.value = false
-      isLoading.value = false
-      
-      // Reinitialize the converter
-      if (theConverterContainer.value) {
-        converter.value = useIfcLoader({
-          container: theConverterContainer.value
-        })
-        await converter.value.initialize()
-        // Set the new components in the store
-        setComponents(converter.value.getComponents())
-      }
-      
-      console.log('Model reset completed')
-    } catch (error) {
-      console.error('Error resetting model:', error)
-    } finally {
-      // Always reset the flag
-      isResetting = false;
-    }
+  const clearSingleTree = () => {
+    singleTree.value = null
   }
   
-  const getHasFragments = () => {
-    return converter.value ? converter.value.getHasFragments() : false
+  // Models list functions
+  const setModelsList = (newModelsList: any) => {
+    modelsList.value = newModelsList
   }
   
-  const getConverter = () => {
-    return converter.value
+  const getModelsList = () => {
+    return modelsList.value
   }
   
-  const dispose = () => {
-    if (converter.value) {
-      converter.value.dispose()
-    }
+  const clearModelsList = () => {
+    modelsList.value = null
+  }
+  
+  // Single models list functions
+  const setSingleModelsList = (newModelsList: any) => {
+    singleModelsList.value = newModelsList
+  }
+  
+  const getSingleModelsList = () => {
+    return singleModelsList.value
+  }
+  
+  const clearSingleModelsList = () => {
+    singleModelsList.value = null
   }
   
   // Components functions
@@ -190,55 +79,33 @@ export const useModelsStore = defineStore('models', () => {
     components.value = newComponents
   }
   
+  const getComponents = () => {
+    return components.value
+  }
+  
   const clearComponents = () => {
     components.value = null
   }
   
-  // Single tree functions
-  const setSingleTree = (tree: any) => {
-    singleTree.value = tree;
+  // Loaded models functions
+  const setLoadedModels = (newModels: any[]) => {
+    loadedModels.value = newModels
   }
   
-  const getSingleTree = () => {
-    return singleTree.value;
+  const addLoadedModel = (model: any) => {
+    loadedModels.value.push(model)
   }
   
-  const clearSingleTree = () => {
-    singleTree.value = null;
-  }
-  
-  // Single models list functions
-  const setSingleModelsList = (modelsList: any) => {
-    singleModelsList.value = modelsList;
-  }
-  
-  const getSingleModelsList = () => {
-    return singleModelsList.value;
-  }
-  
-  const clearSingleModelsList = () => {
-    singleModelsList.value = null;
+  const clearLoadedModels = () => {
+    loadedModels.value = []
   }
   
   return {
-    loadedModels,
-    addModel,
-    addModelTree,
-    removeModel,
-   
-    getRawTreeForModel,
-    
-    // Converter functions
-    initializeConverter,
-    resetModel,
-    getHasFragments,
-    getConverter,
-    dispose,
-    
-    // Components functions
-    components,
-    setComponents,
-    clearComponents,
+    // Tree functions
+    tree,
+    setTree,
+    getTree,
+    clearTree,
     
     // Single tree functions
     singleTree,
@@ -246,10 +113,31 @@ export const useModelsStore = defineStore('models', () => {
     getSingleTree,
     clearSingleTree,
     
+    // Models list functions
+    modelsList,
+    setModelsList,
+    getModelsList,
+    clearModelsList,
+    
     // Single models list functions
     singleModelsList,
     setSingleModelsList,
     getSingleModelsList,
-    clearSingleModelsList
+    clearSingleModelsList,
+    
+    // Components functions
+    components,
+    setComponents,
+    getComponents,
+    clearComponents,
+    
+    // Loaded models functions
+    loadedModels,
+    setLoadedModels,
+    addLoadedModel,
+    clearLoadedModels,
+    
+    // Computed properties
+    fragmentsCount
   }
 })

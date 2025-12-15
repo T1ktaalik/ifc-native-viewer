@@ -31,30 +31,36 @@ export function useModelsListManager(options: ModelsListManagerOptions) {
   const modelsStore = useModelsStore();
   
   const createModelsList = async () => {
-    // Check if we already have a models list
-    const existingModelsList = modelsStore.getSingleModelsList();
-    if (existingModelsList) {
-      // Update the models list wrapper with existing models list
-      updateModelsListWrapper(existingModelsList);
-      return;
-    }
-    
-    if (!modelsStore.components) {
-      return;
-    }
-    
     try {
+      // Check if we already have a models list
+      const existingModelsList = modelsStore.getSingleModelsList();
+      if (existingModelsList) {
+        // Update the models list wrapper with existing models list
+        updateModelsListWrapper(existingModelsList);
+        return;
+      }
+      
+      if (!modelsStore.getComponents()) {
+        console.warn('Components not available for models list creation');
+        return;
+      }
+      
       // Create models list
-      if (!BUIC || !BUIC.tables || !BUIC.tables.modelsList) {
+      if (!BUIC?.tables?.modelsList) {
+        console.warn('Models list functionality not available');
         return;
       }
       
       // Get the components manager
-      const components: any = modelsStore.components;
+      const components = modelsStore.getComponents();
+      if (!components) {
+        console.warn('Components not available');
+        return;
+      }
       
       // Create the models list component with download action enabled
       const [modelsList] = BUIC.tables.modelsList({
-        components,
+        components: components as any,
         metaDataTags: ["schema"],
         actions: { download: true },
       });
@@ -70,20 +76,22 @@ export function useModelsListManager(options: ModelsListManagerOptions) {
   };
   
   // Function to update models list wrapper with the models list
-  const updateModelsListWrapper = (modelsList: any) => {
+  const updateModelsListWrapper = (modelsList: HTMLElement): void => {
     if (!options.modelsListWrapper.value) {
+      console.warn('Models list wrapper not available');
       return;
     }
     
     try {
       // Only append if not already in the correct parent
-      if (modelsList.parentNode !== options.modelsListWrapper.value) {
+      if (modelsList.parentElement !== options.modelsListWrapper.value) {
         // Remove from existing parent if it has one
-        if (modelsList.parentNode) {
+        if (modelsList.parentElement) {
           try {
-            modelsList.parentNode.removeChild(modelsList);
+            modelsList.parentElement.removeChild(modelsList);
           } catch (e) {
             // Ignore errors when removing from parent
+            console.warn('Could not remove models list from existing parent:', e);
           }
         }
         // Add models list directly to the wrapper
@@ -95,8 +103,11 @@ export function useModelsListManager(options: ModelsListManagerOptions) {
   };
   
   // Function to check if we should create models list
-  const checkAndCreateModelsList = () => {
-    if (modelsStore.loadedModels.length > 0 && modelsStore.components) {
+  const checkAndCreateModelsList = (): void => {
+    const components = modelsStore.getComponents();
+    const loadedModels = modelsStore.loadedModels;
+    
+    if (loadedModels.length > 0 && components) {
       createModelsList();
     }
   };
@@ -131,7 +142,6 @@ export function useModelsListManager(options: ModelsListManagerOptions) {
     (newComponents) => {
       if (newComponents && modelsStore.loadedModels.length > 0) {
         // If we have components and loaded models, create the models list
-        // Add a small delay to ensure everything is properly initialized
         setTimeout(() => {
           createModelsList();
         }, 100);
@@ -153,13 +163,7 @@ export function useModelsListManager(options: ModelsListManagerOptions) {
   
   // Watch for changes in fragments models
   const stopFragmentsWatch = watch(
-    () => {
-      if (modelsStore.components) {
-        const fragments = modelsStore.components.get(OBC.FragmentsManager);
-        return fragments ? fragments.list.size : 0;
-      }
-      return 0;
-    },
+    () => modelsStore.fragmentsCount,
     (newCount, oldCount) => {
       if (newCount > 0 && newCount !== oldCount) {
         setTimeout(() => {
@@ -171,22 +175,72 @@ export function useModelsListManager(options: ModelsListManagerOptions) {
   
   // Initialize models list creation on mount
   const initializeModelsListCreation = () => {
+    // Watch for changes in loaded models to display models lists
+    const stopLoadedModelsWatch = watch(
+      () => modelsStore.loadedModels,
+      async (newModels) => {
+        if (newModels.length > 0) {
+          // Wait for next tick to ensure DOM is updated
+          await nextTick();
+          // Create or update models list
+          createModelsList();
+        }
+      },
+      { deep: true }
+    );
+    
+    // Also watch for changes in the single models list
+    const stopSingleModelsListWatch = watch(
+      () => modelsStore.singleModelsList,
+      (newModelsList) => {
+        if (newModelsList && options.modelsListWrapper.value) {
+          updateModelsListWrapper(newModelsList);
+        }
+      }
+    );
+    
+    // Watch for changes in components
+    const stopComponentsWatch = watch(
+      () => modelsStore.components,
+      (newComponents) => {
+        if (newComponents && modelsStore.loadedModels.length > 0) {
+          setTimeout(() => {
+            createModelsList();
+          }, 100);
+        }
+      }
+    );
+    
+    // Watch for both components and models to be ready
+    const stopComponentsModelsWatch = watch(
+      [() => modelsStore.components, () => modelsStore.loadedModels],
+      ([components, models]) => {
+        if (components && models.length > 0) {
+          setTimeout(() => {
+            createModelsList();
+          }, 50);
+        }
+      }
+    );
+    
+    // Watch for changes in fragments models
+    const stopFragmentsWatch = watch(
+      () => modelsStore.fragmentsCount,
+      (newCount, oldCount) => {
+        if (newCount > 0 && newCount !== oldCount) {
+          setTimeout(() => {
+            createModelsList();
+          }, 100);
+        }
+      }
+    );
+    
     // If there are already loaded models when component mounts, create models list
     if (modelsStore.loadedModels.length > 0) {
       nextTick(() => {
         createModelsList();
       });
     }
-    
-    // Also try to create models list after a delay to handle timing issues
-    setTimeout(() => {
-      checkAndCreateModelsList();
-    }, 500);
-    
-    // And again after a longer delay
-    setTimeout(() => {
-      checkAndCreateModelsList();
-    }, 1000);
   };
   
   // Cleanup function to stop all watchers
